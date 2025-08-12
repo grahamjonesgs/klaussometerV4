@@ -3,12 +3,12 @@
 #define READINGS_ARRAY  \
 {"Cave", "cave/tempset-ambient/set", NO_READING, 0.0, {0.0}, CHAR_BLANK, false, DATA_TEMPERATURE, 0, 0}, \
   {"Living room", "livingroom/tempset-ambient/set", NO_READING, 0.0, {0.0}, CHAR_BLANK, false, DATA_TEMPERATURE, 0,0},\
-  {"Henry's room", "guest/tempset-ambient/set", NO_READING, 0.0, {0.0}, CHAR_BLANK, false, DATA_TEMPERATURE, 0,0}, \
+  {"Playroom", "guest/tempset-ambient/set", NO_READING, 0.0, {0.0}, CHAR_BLANK, false, DATA_TEMPERATURE, 0,0}, \
   {"Bedroom", "bedroom/tempset-ambient/set", NO_READING, 0.0, {0.0}, CHAR_BLANK, false, DATA_TEMPERATURE, 0,0}, \
   {"Outside", "outside/tempset-ambient/set", NO_READING, 0.0, {0.0}, CHAR_BLANK, false, DATA_TEMPERATURE, 0,0}, \
   {"Cave", "cave/tempset-humidity/set", NO_READING, 0.0, {0.0}, CHAR_BLANK, false, DATA_HUMIDITY, 0,0}, \
   {"Living room", "livingroom/tempset-humidity/set", NO_READING, 0.0, {0.0}, CHAR_BLANK, false, DATA_HUMIDITY, 0,0},\
-  {"Henry's room", "guest/tempset-humidity/set", NO_READING, 0.0, {0.0}, CHAR_BLANK, false, DATA_HUMIDITY, 0,0}, \
+  {"Playroom", "guest/tempset-humidity/set", NO_READING, 0.0, {0.0}, CHAR_BLANK, false, DATA_HUMIDITY, 0,0}, \
   {"Bedroom", "bedroom/tempset-humidity/set", NO_READING, 0.0, {0.0}, CHAR_BLANK, false, DATA_HUMIDITY, 0,0}, \
   {"Outside", "outside/tempset-humidity/set", NO_READING, 0.0, {0.0}, CHAR_BLANK, false, DATA_HUMIDITY, 0,0}, \
   {"Outside", "outside/tempset-humidity/battery", NO_READING, 0.0, {0.0}, CHAR_BLANK, false, DATA_BATTERY, 0,0}
