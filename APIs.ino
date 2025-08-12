@@ -149,9 +149,10 @@ void get_solar_t(void *pvParameters) {
         String payload = httpClientSolar.getString();
         JsonDocument root;
         deserializeJson(root, payload);
-        const char *rec_token = root["access_token"];
-        const char *success_msg = root["success"];
-        if (strcmp (success_msg, "true") == 0) {
+        //const char *rec_token = root["access_token"];
+        //const char *success_msg = root["success"];
+        if (root.containsKey("access_token")) {
+          const char *rec_token = root["access_token"];
             strncpy(statusMessage, "Solar token obtained", CHAR_LEN);
             statusMessageUpdated = true;
             token = rec_token;

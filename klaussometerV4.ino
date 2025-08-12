@@ -93,9 +93,6 @@ void setup() {
   Serial.println("Starting Klaussometer 4.0 Display");
   // Get data from EEPROM only if same size as check
   storage.begin("KO");
-  /*if (storage.getBytesLength("readings") == sizeof(readings)) {
-    storage.getBytes("readings", &readings, sizeof(readings));
-  }*/
   if (storage.getBytesLength("weather") == sizeof(weather)) {
     storage.getBytes("weather", &weather, sizeof(weather));
   }
@@ -235,8 +232,8 @@ void setup() {
 
     // Start tasks
     xTaskCreatePinnedToCore(receive_mqtt_messages_t, "mqtt", 16384, NULL, 4, NULL, 0);
-    //xTaskCreatePinnedToCore(get_weather_t, "Get Weather", 8192, NULL, 3, NULL, 0);
-    //xTaskCreatePinnedToCore(get_solar_t, "Get Solar", 8192, NULL, 3, NULL, 0);
+    xTaskCreatePinnedToCore(get_weather_t, "Get Weather", 8192, NULL, 3, NULL, 0);
+    xTaskCreatePinnedToCore(get_solar_t, "Get Solar", 8192, NULL, 3, NULL, 0);
   }
 }
 
