@@ -30,7 +30,8 @@ void set_solar_values() {
     lv_label_set_text(ui_UsingLabel, tempString);
 
     // Define and set vlaue for remaining times
-    if (solar.batteryPower > 0) {
+    // Avoid messages for very small discharging
+    if (solar.batteryPower > 0.1) {
       snprintf(tempString, CHAR_LEN, "Discharging %2.1fkW", solar.batteryPower);
       lv_label_set_text(ui_ChargingLabel, tempString);
 
@@ -44,16 +45,19 @@ void set_solar_values() {
       ts_end = *localtime(&end_time);
       strftime(time_buf_end, sizeof(time_buf_end), "%H:%M:%S", &ts_end);
 
-      if (floor(remain_hours) == 1) {
+      if ((floor(remain_hours) == 1) && (remain_minutes > 0)) {
         snprintf(tempString, CHAR_LEN, "%2.0f hour %i mins\n remaining\n Until %s", remain_hours, remain_minutes_round % 60, time_buf_end);
       } else {
-        snprintf(tempString, CHAR_LEN, "%2.0f hours %i mins\n remaining\n Until %s", remain_hours, remain_minutes_round % 60, time_buf_end);
+        if (remain_minutes > 0 && remain_hours < MAX_SOLAR_TIME_STATUS) {
+          snprintf(tempString, CHAR_LEN, "%2.0f hours %i mins\n remaining\n Until %s", remain_hours, remain_minutes_round % 60, time_buf_end);
+        }
       }
       lv_label_set_text(ui_ChargingTime, tempString);
       lv_obj_set_style_arc_color(ui_BatteryArc, lv_color_hex(COLOR_RED), LV_PART_INDICATOR | LV_STATE_DEFAULT);  // Set arc to red
       lv_obj_set_style_bg_color(ui_BatteryArc, lv_color_hex(COLOR_RED), LV_PART_KNOB | LV_STATE_DEFAULT);        // Set arc to red
     } else {
-      if (solar.batteryPower < 0) {
+      // Avoid messages for very small charging
+      if (solar.batteryPower < -0.1) {
         snprintf(tempString, CHAR_LEN, "Charging %2.1fkW", -solar.batteryPower);
         lv_label_set_text(ui_ChargingLabel, tempString);
 
@@ -61,10 +65,12 @@ void set_solar_values() {
         int remain_minutes = 60.0 * remain_hours;
         int remain__minutes = 10 * (round(remain_minutes / 10));
 
-        if (floor(remain_hours) == 1) {
+        if ((floor(remain_hours) == 1) && (remain_minutes > 0)) {
           snprintf(tempString, CHAR_LEN, "%2.0f hour %i mins to\n fully charged", remain_hours, remain__minutes % 60);
         } else {
-          snprintf(tempString, CHAR_LEN, "%2.0f hours %i mins to\n fully charged", remain_hours, remain__minutes % 60);
+          if (remain_minutes > 0 && remain_hours < MAX_SOLAR_TIME_STATUS) {
+            snprintf(tempString, CHAR_LEN, "%2.0f hours %i mins to\n fully charged", remain_hours, remain__minutes % 60);
+          }
         }
 
         if (remain_minutes == 0) {
@@ -104,6 +110,7 @@ void set_solar_values() {
     }
   }
 }
+
 
 
 // Sets UV color based on value
