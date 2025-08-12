@@ -29,8 +29,8 @@ Arduino Core 0
 #include <WiFiUdp.h>
 #include <ArduinoJson.h>
 #include <Preferences.h>
-#include "FS.h"
-#include "SD_MMC.h"
+//#include "FS.h"
+//#include "SD_MMC.h"
 
 
 // For Backlight PWM
@@ -175,6 +175,7 @@ void setup() {
     lv_label_set_text(ui_Direction3, "");
     lv_label_set_text(ui_Direction4, "");
     lv_label_set_text(ui_Direction5, "");
+    lv_label_set_text(ui_BatteryLabel5, "");
 
     lv_label_set_text(ui_HumidLabel1, readings[5].output);
     lv_label_set_text(ui_HumidLabel2, readings[6].output);
@@ -272,7 +273,33 @@ void loop() {
   snprintf(tempString, CHAR_LEN, "%c", readings[3].changeChar);
   lv_label_set_text(ui_Direction4, tempString);
   snprintf(tempString, CHAR_LEN, "%c", readings[4].changeChar);
-  lv_label_set_text(ui_Direction1, tempString);
+  lv_label_set_text(ui_Direction5, tempString);
+  
+
+  // Battery updates
+  if (readings[10].currentValue > BATTERY_OK) {
+    snprintf(tempString, CHAR_LEN, "%c", CHAR_BATTERY_GOOD);
+    lv_label_set_text(ui_BatteryLabel5, tempString);
+    lv_obj_set_style_text_color(ui_BatteryLabel5, lv_color_hex(COLOR_GREEN), LV_PART_MAIN);
+  } else {
+    if (readings[10].currentValue > BATTERY_BAD) {
+      snprintf(tempString, CHAR_LEN, "%c", CHAR_BATTERY_OK);
+      lv_label_set_text(ui_BatteryLabel5, tempString);
+      lv_obj_set_style_text_color(ui_BatteryLabel5, lv_color_hex(COLOR_GREEN), LV_PART_MAIN);
+    } else {
+      if (readings[10].currentValue > BATTERY_CRITICAL) {
+        snprintf(tempString, CHAR_LEN, "%c", CHAR_BATTERY_BAD);
+        lv_label_set_text(ui_BatteryLabel5, tempString);
+        lv_obj_set_style_text_color(ui_BatteryLabel5, lv_color_hex(COLOR_YELLOW), LV_PART_MAIN);
+      } else {
+        if (readings[10].readingIndex != 0) {
+          snprintf(tempString, CHAR_LEN, "%c", CHAR_BATTERY_CRITICAL);
+          lv_label_set_text(ui_BatteryLabel5, tempString);
+          lv_obj_set_style_text_color(ui_BatteryLabel5, lv_color_hex(COLOR_RED), LV_PART_MAIN);
+        }
+      }
+    }
+  }
 
   // Update weather values
   if (weather.updateTime > 0) {

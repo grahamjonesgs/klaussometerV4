@@ -11,8 +11,7 @@
   {"Playroom", "guest/tempset-humidity/set", NO_READING, 0.0, {0.0}, CHAR_BLANK, false, DATA_HUMIDITY, 0,0}, \
   {"Bedroom", "bedroom/tempset-humidity/set", NO_READING, 0.0, {0.0}, CHAR_BLANK, false, DATA_HUMIDITY, 0,0}, \
   {"Outside", "outside/tempset-humidity/set", NO_READING, 0.0, {0.0}, CHAR_BLANK, false, DATA_HUMIDITY, 0,0}, \
-  {"Outside", "outside/tempset-humidity/battery", NO_READING, 0.0, {0.0}, CHAR_BLANK, false, DATA_BATTERY, 0,0}
-
+  {"Outside", "outside/battery/set", NO_READING, 0.0, {0.0}, CHAR_BLANK, false, DATA_BATTERY, 0,0} 
 
 #define CHAR_LEN 255
 
@@ -83,6 +82,15 @@ struct ForecastHours {
 #define CHAR_SAME ' '  // Based on epicycles ADF font as blank if no chnage
 #define CHAR_BLANK 32
 #define CHAR_NO_MESSAGE 'f'  // Based on epicycles ADF font
+#define CHAR_BATTERY_GOOD 'v' // Based on battery font
+#define CHAR_BATTERY_OK 'u' // Based on battery font
+#define CHAR_BATTERY_BAD 't' // Based on battery font
+#define CHAR_BATTERY_CRITICAL 's' // Based on battery font
+
+// Define boundries for battery health
+#define BATTERY_OK 3.75
+#define BATTERY_BAD 3.6
+#define BATTERY_CRITICAL 3.5
 
 // Data type definition for array
 #define DATA_TEMPERATURE 0
@@ -120,7 +128,8 @@ struct ForecastHours {
 #define PIN_SD_CLK 12
 #define PIN_SD_D0 13
 
-#define COLOR_RED 0xFF0000
+#define COLOR_RED 0xFA0000
+#define COLOR_YELLOW 0xF7EA48
 #define COLOR_GREEN 0x205602
 #define COLOR_BLACK 0x000000
 #define COLOR_WHITE 0xFFFFFF

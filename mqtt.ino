@@ -165,21 +165,14 @@ void update_battery(char *recMessage, int index) {
   if (readings[index].readingIndex == 0) {
     readings[index].changeChar = CHAR_BLANK;  // First reading of this boot
     readings[index].lastValue[0] = readings[index].currentValue;
+    averageHistory = readings[index].currentValue;
   } else {
-    for (int i = 0; i < readings[index].readingIndex; i++) {
+    for (int i = 0; i <= readings[index].readingIndex; i++) {
+      Serial.printf("Calc average i is %i, readings[index].readingIndex is %i , total is before %f, ", i , readings[index].readingIndex, totalHistory );
       totalHistory = totalHistory + readings[index].lastValue[i];
+      Serial.printf("new total is %f\n",totalHistory);
     }
     averageHistory = totalHistory / readings[index].readingIndex;
-
-    if (readings[index].currentValue > averageHistory) {
-      readings[index].changeChar = CHAR_UP;
-    }
-    if (readings[index].currentValue < averageHistory) {
-      readings[index].changeChar = CHAR_DOWN;
-    }
-    if (readings[index].currentValue == averageHistory) {
-      readings[index].changeChar = CHAR_SAME;
-    }
 
     if (readings[index].readingIndex == STORED_READING) {
       readings[index].readingIndex--;
@@ -197,8 +190,8 @@ void update_battery(char *recMessage, int index) {
   readings[index].readingIndex++;
   readings[index].lastMessageTime = millis();
   snprintf(statusMessage, CHAR_LEN, "Update received for %s", readings[index].description);
-  // xxxxxxxxxxxxxxxxx
-  Serial.printf("Battery message received of %f\n ", readings[index].currentValue);
+  // Now set current value to average to reduce fluctuations
+  readings[index].currentValue=averageHistory;
   statusMessageUpdated = true;
 }
 

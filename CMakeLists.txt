@@ -5,6 +5,8 @@ SET(SOURCES ui_Screen1.c
     fonts/ui_font_Arrows_ADF_big.c
     fonts/ui_font_Epicycles.c
     fonts/ui_font_Monserrat_Bold_18.c
-    fonts/ui_font_Monserrat_bold_32.c)
+    fonts/ui_font_Monserrat_bold_32.c
+    fonts/ui_font_Battery.c
+    fonts/ui_font_Battery2.c)
 
 add_library(ui ${SOURCES})
