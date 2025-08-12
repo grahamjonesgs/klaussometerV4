@@ -101,6 +101,7 @@ struct ForecastHours {
 #define FORECAST_DAYS 16                     // Number of day's forecast to request
 #define FORECAST_HOURS 16                    // Number of hours's forecast to request
 #define STATUS_MESSAGE_TIME 5                // Seconds an status message can be displayed
+#define MAX_SOLAR_TIME_STATUS 24             // Max time in hours for chnage / discharge that a message will be displayed for
 
 #define SCREEN_W 1024
 #define SCREEN_H 600
