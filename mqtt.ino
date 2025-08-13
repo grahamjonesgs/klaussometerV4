@@ -167,7 +167,7 @@ void update_battery(char *recMessage, int index) {
     readings[index].lastValue[0] = readings[index].currentValue;
     averageHistory = readings[index].currentValue;
   } else {
-    for (int i = 0; i <= readings[index].readingIndex; i++) {
+    for (int i = 0; i < readings[index].readingIndex; i++) {
       Serial.printf("Calc average i is %i, readings[index].readingIndex is %i , total is before %f, ", i , readings[index].readingIndex, totalHistory );
       totalHistory = totalHistory + readings[index].lastValue[i];
       Serial.printf("new total is %f\n",totalHistory);

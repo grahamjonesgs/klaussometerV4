@@ -16,7 +16,7 @@ extern Weather weather;
 extern Solar solar;
 
 // Get weather from weatherbit.io
-void get_weather_t(void *pvParameters) {
+/*void get_weather_t_old(void *pvParameters) {
 
   const char apiKey[] = WEATHERBIT_API;
   String requestUrl;
@@ -120,6 +120,166 @@ void get_weather_t(void *pvParameters) {
     }
     delay(300000);
   }
+} */
+
+/* float temperature;
+  float windSpeed;
+  float UV;
+  float maxTemp;
+  float minTemp;
+  bool isDay;
+  time_t updateTime;
+  char windDir[CHAR_LEN];
+  char description[CHAR_LEN];
+  char weather_time_string[CHAR_LEN];*/
+
+
+void get_weather_t(void *pvParameters) {
+
+  String requestUrl;
+  time_t t;
+
+  while (true) {
+    String callstring;
+    if (now() - weather.updateTime > WEATHER_UPDATE_INTERVAL) {
+      httpClientWeather.begin("https://api.open-meteo.com/v1/forecast?latitude=-33.9258&longitude=18.4232&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max&models=ukmo_uk_deterministic_2km,cma_grapes_global&current=temperature_2m,is_day,weather_code,wind_speed_10m,wind_direction_10m&timezone=auto&forecast_days=1");
+      int httpCode = httpClientWeather.GET();
+      if (httpCode > 0) {
+        if (httpCode == HTTP_CODE_OK) {
+          String payload = httpClientWeather.getString();
+          JsonDocument root;
+          deserializeJson(root, payload);
+          
+          float weatherTemperature = root["current"]["temperature_2m"];
+          float weatherWindDir = root["current"]["wind_direction_10m"];
+          float weatherWindSpeed = root["current"]["wind_speed_10m"];
+          float weatherMaxTemp = root["daily"]["temperature_2m_max"][0];
+          float weatherMinTemp = root["daily"]["temperature_2m_min"][0];
+          bool weatherIsDay = root["current"]["is_day"];
+          int weatherCode = root["current"]["weather_code"];
+
+          weather.temperature = weatherTemperature;
+          weather.windSpeed = weatherWindSpeed;
+          weather.UV = 0;
+          weather.maxTemp = weatherMaxTemp;
+          weather.minTemp = weatherMinTemp;
+          weather.isDay = weatherIsDay;
+          strncpy(weather.description, wmoToText(weatherCode, weatherIsDay), CHAR_LEN);
+          strncpy(weather.windDir, degreesToDirection(weatherWindDir), CHAR_LEN);
+
+          weather.updateTime = now();
+          timeClient.getFormattedTime().toCharArray(weather.weather_time_string, CHAR_LEN);
+          strncpy(statusMessage, "Weather updated", CHAR_LEN);
+          statusMessageUpdated = true;
+        }
+      } else {
+        Serial.printf("[HTTP] GET current weather failed, error: %s\n", httpClientWeather.errorToString(httpCode).c_str());
+        strncpy(statusMessage, "Weather updated failed", CHAR_LEN);
+        statusMessageUpdated = true;
+      }
+    }
+
+    delay(1000);
+  }
+}
+
+const char *degreesToDirection(double degrees) {
+  // Normalize the degrees to a 0-360 range
+  // The fmod function handles floating point remainder.
+  degrees = fmod(degrees, 360.0);
+  if (degrees < 0) {
+    degrees += 360.0;
+  }
+
+  // Determine the direction based on 45-degree sectors.
+  // We add 22.5 to shift the starting point so that North is centered on 0.
+  // This simplifies the logic by making the ranges positive.
+  double shiftedDegrees = degrees + 22.5;
+
+  if (shiftedDegrees >= 360) {
+    shiftedDegrees -= 360;
+  }
+
+  if (shiftedDegrees < 45) {
+    return "N";
+  } else if (shiftedDegrees < 90) {
+    return "NE";
+  } else if (shiftedDegrees < 135) {
+    return "E";
+  } else if (shiftedDegrees < 180) {
+    return "SE";
+  } else if (shiftedDegrees < 225) {
+    return "S";
+  } else if (shiftedDegrees < 270) {
+    return "SW";
+  } else if (shiftedDegrees < 315) {
+    return "W";
+  } else {
+    return "NW";
+  }
+}
+
+const char *wmoToText(int code, bool isDay) {
+  switch (code) {
+    case 0:
+      return isDay ? "Sunny" : "Clear";
+    case 1:
+      return isDay ? "Mainly sunney" : "Mostly clear";
+    case 2:
+      return isDay ? "Partly cloudy" : "Partly cloudy";
+    case 3:
+      return "Overcast";
+    case 45:
+      return "Fog";
+    case 48:
+      return "Depositing rime fog";
+    case 51:
+      return "Light drizzle";
+    case 53:
+      return "Moderate drizzle";
+    case 55:
+      return "Dense drizzle";
+    case 56:
+      return "Light freezing drizzle";
+    case 57:
+      return "Dense freezing drizzle";
+    case 61:
+      return "Slight rain";
+    case 63:
+      return "Moderate rain";
+    case 65:
+      return "Heavy rain";
+    case 66:
+      return "Light freezing rain";
+    case 67:
+      return "Heavy freezing rain";
+    case 71:
+      return "Slight snow fall";
+    case 73:
+      return "Moderate snow fall";
+    case 75:
+      return "Heavy snow fall";
+    case 77:
+      return "Snow grains";
+    case 80:
+      return "Slight rain showers";
+    case 81:
+      return "Moderate rain showers";
+    case 82:
+      return "Violent rain showers";
+    case 85:
+      return "Slight snow showers";
+    case 86:
+      return "Heavy snow showers";
+    case 95:
+      return "Thunderstorm";
+    case 96:
+      return "Thunderstorm with slight hail";
+    case 99:
+      return "Thunderstorm with heavy hail";
+    default:
+      return "Unknown weather code or not provided in the Gist.";
+  }
 }
 
 // Get solar values from Solarman
@@ -153,12 +313,11 @@ void get_solar_t(void *pvParameters) {
         //const char *success_msg = root["success"];
         if (root.containsKey("access_token")) {
           const char *rec_token = root["access_token"];
-            strncpy(statusMessage, "Solar token obtained", CHAR_LEN);
-            statusMessageUpdated = true;
-            token = rec_token;
-            token = "bearer " + token;
-          }
-        else {
+          strncpy(statusMessage, "Solar token obtained", CHAR_LEN);
+          statusMessageUpdated = true;
+          token = rec_token;
+          token = "bearer " + token;
+        } else {
           strncpy(statusMessage, "Solar token error", CHAR_LEN);
         }
       }

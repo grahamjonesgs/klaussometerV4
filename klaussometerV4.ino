@@ -14,7 +14,6 @@ Arduino Core 0
 #include <lvgl.h>  // Version 8.4 tested
 #include "ui.h"
 #include <Arduino_GFX_Library.h>
-//#include <U8g2lib.h>
 #include <TAMC_GT911.h>
 #include <Wire.h>
 #include <WiFi.h>
@@ -29,9 +28,6 @@ Arduino Core 0
 #include <WiFiUdp.h>
 #include <ArduinoJson.h>
 #include <Preferences.h>
-//#include "FS.h"
-//#include "SD_MMC.h"
-
 
 // For Backlight PWM
 const int PWMFreq = 5000;
@@ -81,43 +77,14 @@ HTTPClient httpClientSolar;
 time_t statusChangeTime = 0;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", TIME_OFFSET, 60000);
 void touch_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data);
-Weather weather = { 0.0, 0, 0.0, 0.0, 0.0, "", "", "", "", 0, 0, 0, "--:--:--" };
+Weather weather = { 0.0, 0.0, 0.0, 0.0, 0.0, false, 0, "", "", "--:--:--" };  // needs to be updated
 Solar solar = { 0, 0.0, 0.0, 0.0, 0.0, 0.0, "--:--:--", 100, 0, false, 0.0, 0.0 };
-ForecastDays forecastDays[FORECAST_DAYS];
-ForecastHours forecastHours[FORECAST_HOURS];
 Readings readings[]{ READINGS_ARRAY };
 Preferences storage;
 
 void setup() {
   Serial.begin(115200);
   Serial.println("Starting Klaussometer 4.0 Display");
-  // Get data from EEPROM only if same size as check
-  storage.begin("KO");
-  if (storage.getBytesLength("weather") == sizeof(weather)) {
-    storage.getBytes("weather", &weather, sizeof(weather));
-  }
-
-  if (storage.getBytesLength("forecastDays") == sizeof(forecastDays)) {
-    storage.getBytes("forecastDays", &forecastDays, sizeof(forecastDays));
-  }
-  solar.today_battery_min = storage.getFloat("solarmin");
-  if (isnan(solar.today_battery_min)) {
-    solar.today_battery_min = 100;
-  }
-  solar.today_battery_max = storage.getFloat("solarmax");
-  if (isnan(solar.today_battery_max)) {
-    solar.today_battery_max = 0;
-  }
-  storage.end();
-
-  // Invalidate all readings from EEPROM
-  for (int i = 0; i < sizeof(readings) / sizeof(readings[0]); i++) {
-    if ((millis() > readings[i].lastMessageTime + (MAX_NO_MESSAGE_SEC * 1000)) && (strcmp(readings[i].output, NO_READING) != 0) && (readings[i].changeChar != CHAR_NO_MESSAGE)) {
-      readings[i].changeChar = CHAR_NO_MESSAGE;
-      snprintf(readings[i].output, 10, NO_READING);
-      readings[i].currentValue = 0.0;
-    }
-  }
 
   pin_init();
   touch_init();
@@ -274,7 +241,7 @@ void loop() {
   lv_label_set_text(ui_Direction4, tempString);
   snprintf(tempString, CHAR_LEN, "%c", readings[4].changeChar);
   lv_label_set_text(ui_Direction5, tempString);
-  
+
 
   // Battery updates
   if (readings[10].currentValue > BATTERY_OK) {
@@ -306,7 +273,7 @@ void loop() {
     lv_label_set_text(ui_FCConditions, weather.description);
     snprintf(tempString, CHAR_LEN, "Updated %s", weather.weather_time_string);
     lv_label_set_text(ui_FCUpdateTime, tempString);
-    snprintf(tempString, CHAR_LEN, "Wind %2.0f kmh %s", weather.windSpeed, weather.windDir);
+    snprintf(tempString, CHAR_LEN, "Wind %2.0f km/h %s", weather.windSpeed, weather.windDir);
     lv_label_set_text(ui_FCWindSpeed, tempString);
 
     snprintf(tempString, CHAR_LEN, "%2.1f", weather.temperature);
@@ -322,21 +289,21 @@ void loop() {
     lv_obj_set_style_bg_color(ui_UVArc, lv_color_hex(uv_color(weather.UV)), LV_PART_KNOB | LV_STATE_DEFAULT);        // Set arc to color
 
     // Set min max if outside the expected values
-    if (weather.temperature < forecastDays[0].minTemp) {
-      forecastDays[0].minTemp = weather.temperature;
+    if (weather.temperature < weather.minTemp) {
+      weather.minTemp = weather.temperature;
     }
-    if (weather.temperature > forecastDays[0].maxTemp) {
-      forecastDays[0].maxTemp = weather.temperature;
+    if (weather.temperature > weather.maxTemp) {
+      weather.maxTemp = weather.temperature;
     }
   }
 
-  if (weather.dailyUpdateTime > 0) {
-    snprintf(tempString, CHAR_LEN, "Min\n%2.0fC", forecastDays[0].minTemp);
+  if (weather.updateTime > 0) {
+    snprintf(tempString, CHAR_LEN, "Min\n%2.0fC", weather.minTemp);
     lv_label_set_text(ui_FCMin, tempString);
-    snprintf(tempString, CHAR_LEN, "Max\n%2.0fC", forecastDays[0].maxTemp);
+    snprintf(tempString, CHAR_LEN, "Max\n%2.0fC", weather.maxTemp);
     lv_label_set_text(ui_FCMax, tempString);
-    lv_arc_set_range(ui_TempArcFC, forecastDays[0].minTemp, forecastDays[0].maxTemp);
-  }
+    lv_arc_set_range(ui_TempArcFC, weather.minTemp, weather.maxTemp);
+  } 
 
   // Update solar values
   set_solar_values();
@@ -373,20 +340,20 @@ void loop() {
   timeClient.getFormattedTime().toCharArray(timeString, CHAR_LEN);
   lv_label_set_text(ui_Time, timeString);
 
-  if ((now() > forecastDays[0].sunrise) && (now() < forecastDays[0].sunset)) {
 
-    ledcWrite(PWMChannel, day_duty);
-    set_basic_text_color(lv_color_hex(COLOR_BLACK));
-    lv_obj_set_style_bg_color(lv_scr_act(), lv_color_hex(COLOR_WHITE), LV_STATE_DEFAULT);
-    lv_obj_set_style_border_color(ui_Container1, lv_color_hex(COLOR_BLACK), LV_STATE_DEFAULT);
-    lv_obj_set_style_border_color(ui_Container2, lv_color_hex(COLOR_BLACK), LV_STATE_DEFAULT);
-
-  } else {
+  if (!weather.isDay) {
     ledcWrite(PWMChannel, night_duty);
     set_basic_text_color(lv_color_hex(COLOR_WHITE));
     lv_obj_set_style_bg_color(lv_scr_act(), lv_color_hex(COLOR_BLACK), LV_STATE_DEFAULT);
     lv_obj_set_style_border_color(ui_Container1, lv_color_hex(COLOR_WHITE), LV_STATE_DEFAULT);
     lv_obj_set_style_border_color(ui_Container2, lv_color_hex(COLOR_WHITE), LV_STATE_DEFAULT);
+
+  } else {
+    ledcWrite(PWMChannel, day_duty);
+    set_basic_text_color(lv_color_hex(COLOR_BLACK));
+    lv_obj_set_style_bg_color(lv_scr_act(), lv_color_hex(COLOR_WHITE), LV_STATE_DEFAULT);
+    lv_obj_set_style_border_color(ui_Container1, lv_color_hex(COLOR_BLACK), LV_STATE_DEFAULT);
+    lv_obj_set_style_border_color(ui_Container2, lv_color_hex(COLOR_BLACK), LV_STATE_DEFAULT);
   }
 
   // Invalidate readings if too old

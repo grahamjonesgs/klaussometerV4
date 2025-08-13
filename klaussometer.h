@@ -30,17 +30,14 @@ struct Readings {                   // Array to hold the incoming measurement
 
 struct Weather {
   float temperature;
-  int pressure;
-  float humidity;
   float windSpeed;
   float UV;
-  char windDir[CHAR_LEN];
-  char overal[CHAR_LEN];
-  char description[CHAR_LEN];
-  char icon[CHAR_LEN];
-  long timeOffset;
+  float maxTemp;
+  float minTemp;
+  bool isDay;
   time_t updateTime;
-  time_t dailyUpdateTime;
+  char windDir[CHAR_LEN];
+  char description[CHAR_LEN];
   char weather_time_string[CHAR_LEN];
 };
 
@@ -57,22 +54,6 @@ struct Solar {
   bool minmax_reset;
   float today_buy;
   float month_buy;
-};
-
-struct ForecastDays {
-  time_t dateTime;
-  float maxTemp;
-  float minTemp;
-  char description[CHAR_LEN];
-  char icon[CHAR_LEN];
-  float moonPhase;
-  time_t sunrise;
-  time_t sunset;
-};
-
-struct ForecastHours {
-  char localTime[CHAR_LEN];
-  char icon[CHAR_LEN];
 };
 
 #define NO_READING "--"
@@ -102,12 +83,8 @@ struct ForecastHours {
 // Define constants used
 #define MAX_NO_MESSAGE_SEC 3600LL            // Time before CHAR_NO_MESSAGE is set in seconds (long)
 #define TIME_RETRIES 100                     // Number of time to retry getting the time during setup
-#define WEATHER_UPDATE_INTERVAL 3600         // Interval between weather updates
+#define WEATHER_UPDATE_INTERVAL 30         // Interval between weather updates
 #define SOLAR_UPDATE_INTERVAL 30             // Interval between solar updates
-#define FORECAST_DAYS_UPDATE_INTERVAL 7200   // Interval between days forecast updates
-#define FORECAST_HOURS_UPDATE_INTERVAL 3600  // Interval between hour forecast updates
-#define FORECAST_DAYS 16                     // Number of day's forecast to request
-#define FORECAST_HOURS 16                    // Number of hours's forecast to request
 #define STATUS_MESSAGE_TIME 5                // Seconds an status message can be displayed
 #define MAX_SOLAR_TIME_STATUS 24             // Max time in hours for chnage / discharge that a message will be displayed for
 
