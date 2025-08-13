@@ -19,23 +19,18 @@ extern Solar solar;
 void get_uv_t(void *pvParameters) {
 
   const char apiKey[] = WEATHERBIT_API;
-Serial.printf("StartingUV\n");
   while (true) {
     if (now() - weather.UVupdateTime > UV_UPDATE_INTERVAL) {
-      Serial.printf("setting URL");
       httpClientUV.begin("http://api.weatherbit.io/v2.0/current?city_id=3369157&key=" + String(apiKey));
       int httpCode = httpClientUV.GET();
-      Serial.printf("get done\n");
       if (httpCode > 0) {
         if (httpCode == HTTP_CODE_OK) {
-          Serial.printf("was OK\n");
           String payload = httpClientUV.getString();
 
           JsonDocument root;
           deserializeJson(root, payload);
           float UV = root["data"][0]["uv"];
           weather.UV = UV;
-          Serial.printf("UV is %f\n",UV);
           weather.UVupdateTime = now();
           strncpy(statusMessage, "UV updated", CHAR_LEN);
           timeClient.getFormattedTime().toCharArray(weather.UVweather_time_string, CHAR_LEN);
@@ -55,7 +50,6 @@ void get_weather_t(void *pvParameters) {
 
   String requestUrl;
   time_t t;
-Serial.printf("Starting weather\n");
   while (true) {
     String callstring;
     if (now() - weather.updateTime > WEATHER_UPDATE_INTERVAL) {
@@ -358,7 +352,6 @@ void get_solar_t(void *pvParameters) {
             statusMessageUpdated = true;
           } else {
             String rec_msg = root["msg"];
-            Serial.printf("rec_msg from get today buy is %s\n", rec_msg);
           }
         } else {
           Serial.printf("[HTTP] GET solar today buy value failed, error: %s\n", httpClientSolar.errorToString(httpCode).c_str());
