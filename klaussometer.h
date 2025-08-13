@@ -40,7 +40,7 @@ struct Weather {
   char windDir[CHAR_LEN];
   char description[CHAR_LEN];
   char weather_time_string[CHAR_LEN];
-  char UVweather_time_string[CHAR_LEN];
+  char UV_time_string[CHAR_LEN];
 };
 
 struct Solar {

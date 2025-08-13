@@ -33,7 +33,7 @@ void receive_mqtt_messages_t(void *pvParams) {
     messageSize = mqttClient.parseMessage();
     if (messageSize) {  // Message received
       topic = mqttClient.messageTopic();
-      mqttClient.read((unsigned char *)recMessage, (size_t)sizeof(recMessage));  // Distructive read of message
+      mqttClient.read((unsigned char *)recMessage, (size_t)sizeof(recMessage));  // Destructive read of message
       recMessage[messageSize] = 0;
       //Serial.println("Topic: " + String(topic) + " Msg: " + recMessage);
 

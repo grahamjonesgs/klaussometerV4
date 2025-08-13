@@ -10,6 +10,7 @@
 
 extern WiFiClient espClient;
 extern HTTPClient httpClientWeather;
+extern HTTPClient httpClientUV;
 extern HTTPClient httpClientSolar;
 
 extern Weather weather;
@@ -17,30 +18,35 @@ extern Solar solar;
 
 // Get weather from weatherbit.io
 void get_uv_t(void *pvParameters) {
-
   const char apiKey[] = WEATHERBIT_API;
   while (true) {
-    if (now() - weather.UVupdateTime > UV_UPDATE_INTERVAL) {
-      httpClientUV.begin("http://api.weatherbit.io/v2.0/current?city_id=3369157&key=" + String(apiKey));
-      int httpCode = httpClientUV.GET();
-      if (httpCode > 0) {
-        if (httpCode == HTTP_CODE_OK) {
-          String payload = httpClientUV.getString();
+    if (weather.isDay) {
+      if ((now() - weather.UVupdateTime > UV_UPDATE_INTERVAL)) {
+        httpClientUV.begin("http://api.weatherbit.io/v2.0/current?city_id=3369157&key=" + String(apiKey));
+        int httpCode = httpClientUV.GET();
+        if (httpCode > 0) {
+          if (httpCode == HTTP_CODE_OK) {
+            String payload = httpClientUV.getString();
 
-          JsonDocument root;
-          deserializeJson(root, payload);
-          float UV = root["data"][0]["uv"];
-          weather.UV = UV;
-          weather.UVupdateTime = now();
-          strncpy(statusMessage, "UV updated", CHAR_LEN);
-          timeClient.getFormattedTime().toCharArray(weather.UVweather_time_string, CHAR_LEN);
+            JsonDocument root;
+            deserializeJson(root, payload);
+            float UV = root["data"][0]["uv"];
+            weather.UV = UV;
+            weather.UVupdateTime = now();
+            strncpy(statusMessage, "UV updated", CHAR_LEN);
+            timeClient.getFormattedTime().toCharArray(weather.UV_time_string, CHAR_LEN);
+            statusMessageUpdated = true;
+          }
+        } else {
+          Serial.printf("[HTTP] GET UV failed, error: %s\n", httpClientUV.errorToString(httpCode).c_str());
+          strncpy(statusMessage, "UV updated failed", CHAR_LEN);
           statusMessageUpdated = true;
         }
-      } else {
-        Serial.printf("[HTTP] GET UV failed, error: %s\n", httpClientUV.errorToString(httpCode).c_str());
-        strncpy(statusMessage, "UV updated failed", CHAR_LEN);
-        statusMessageUpdated = true;
       }
+    } else {
+      weather.UV = 0.0;
+      weather.UVupdateTime = now();
+      timeClient.getFormattedTime().toCharArray(weather.UV_time_string, CHAR_LEN);
     }
     vTaskDelay(30000);
   }
@@ -136,7 +142,7 @@ const char *wmoToText(int code, bool isDay) {
     case 0:
       return isDay ? "Sunny" : "Clear";
     case 1:
-      return isDay ? "Mainly sunney" : "Mostly clear";
+      return isDay ? "Mainly sunny" : "Mostly clear";
     case 2:
       return isDay ? "Partly cloudy" : "Partly cloudy";
     case 3:
@@ -202,7 +208,7 @@ void get_solar_t(void *pvParameters) {
   String solar_secret = SOLAR_SECRET;
   String solar_username = SOLAR_USERNAME;
   String solar_passhash = SOLAR_PASSHASH;
-  String solar_statioid = SOLAR_STATIONID;
+  String solar_stationid = SOLAR_STATIONID;
   String token = "";
   char currentDate[CHAR_LEN];
   char currentYearMonth[CHAR_LEN];
@@ -244,7 +250,7 @@ void get_solar_t(void *pvParameters) {
       httpClientSolar.begin("https://" + solar_url + "//station/v1.0/realTime?language=en");
       httpClientSolar.addHeader("Content-Type", "application/json");
       httpClientSolar.addHeader("Authorization", token);
-      int httpCode = httpClientSolar.POST("{\n\"stationId\" : \"" + solar_statioid + "\"\n}");
+      int httpCode = httpClientSolar.POST("{\n\"stationId\" : \"" + solar_stationid + "\"\n}");
       if (httpCode > 0) {
         if (httpCode == HTTP_CODE_OK) {
           String payload = httpClientSolar.getString();
@@ -283,7 +289,7 @@ void get_solar_t(void *pvParameters) {
               storage.remove("solarmin");
               storage.remove("solarmmax");
               storage.putFloat("solarmin", solar.today_battery_min);
-              storage.putFloat("solarmmax", solar.today_battery_max);
+              storage.putFloat("solarmax", solar.today_battery_max);
               storage.end();
             } else {
               if (timeClient.getHours() != 0) {
@@ -311,7 +317,7 @@ void get_solar_t(void *pvParameters) {
             statusMessageUpdated = true;
           }
         } else {
-          Serial.printf("[HTTP] GET solar staus failed, error: %s\n", httpClientSolar.errorToString(httpCode).c_str());
+          Serial.printf("[HTTP] GET solar status failed, error: %s\n", httpClientSolar.errorToString(httpCode).c_str());
           String payload = httpClientSolar.getString();
           strncpy(statusMessage, "Getting solar status failed", CHAR_LEN);
           statusMessageUpdated = true;
@@ -320,8 +326,8 @@ void get_solar_t(void *pvParameters) {
       vTaskDelay(1000);
       /*
         timeType 1 with start and end date of today gives array of size "total", then in stationDataItems -> batterySoc to get battery min/max for today
-        timeType 2 with start and end date of today gives today's buy ammount as stationDataItems -> buyValue
-        timeType 3 with start and end date of today (but now date only year month) gives this months's buy ammount as stationDataItems -> buyValue
+        timeType 2 with start and end date of today gives today's buy amount as stationDataItems -> buyValue
+        timeType 3 with start and end date of today (but now date only year month) gives this months's buy amount as stationDataItems -> buyValue
         */
       time_t now = timeClient.getEpochTime();
       struct tm CurrenTimeInfo = *localtime(&now);
@@ -337,7 +343,7 @@ void get_solar_t(void *pvParameters) {
       httpClientSolar.addHeader("Content-Type", "application/json");
       httpClientSolar.addHeader("Authorization", token);
 
-      httpCode = httpClientSolar.POST("{\n\"stationId\" : \"" + solar_statioid + "\",\n\"timeType\" : 2,\n\"startTime\" : \"" + currentDate + "\",\n\"endTime\" : \"" + currentDate + "\"\n}");
+      httpCode = httpClientSolar.POST("{\n\"stationId\" : \"" + solar_stationid + "\",\n\"timeType\" : 2,\n\"startTime\" : \"" + currentDate + "\",\n\"endTime\" : \"" + currentDate + "\"\n}");
       vTaskDelay(100);
       if (httpCode > 0) {
         if (httpCode == HTTP_CODE_OK) {
@@ -367,7 +373,7 @@ void get_solar_t(void *pvParameters) {
       httpClientSolar.addHeader("Content-Type", "application/json");
       httpClientSolar.addHeader("Authorization", token);
 
-      httpCode = httpClientSolar.POST("{\n\"stationId\" : \"" + solar_statioid + "\",\n\"timeType\" : 3,\n\"startTime\" : \"" + currentYearMonth + "\",\n\"endTime\" : \"" + currentYearMonth + "\"\n}");
+      httpCode = httpClientSolar.POST("{\n\"stationId\" : \"" + solar_stationid + "\",\n\"timeType\" : 3,\n\"startTime\" : \"" + currentYearMonth + "\",\n\"endTime\" : \"" + currentYearMonth + "\"\n}");
       if (httpCode > 0) {
         if (httpCode == HTTP_CODE_OK) {
           String payload = httpClientSolar.getString();

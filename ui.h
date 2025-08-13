@@ -35,11 +35,10 @@ extern lv_obj_t *ui____initial_actions0;
 
 // FONTS
 LV_FONT_DECLARE( ui_font_Arrows_ADF_big);
+LV_FONT_DECLARE( ui_font_Battery);
 LV_FONT_DECLARE( ui_font_Epicycles);
 LV_FONT_DECLARE( ui_font_Monserrat_Bold_18);
 LV_FONT_DECLARE( ui_font_Monserrat_bold_32);
-LV_FONT_DECLARE( ui_font_Battery);
-LV_FONT_DECLARE( ui_font_Battery2);
 
 // UI INIT
 void ui_init(void);

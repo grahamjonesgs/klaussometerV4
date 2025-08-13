@@ -153,6 +153,7 @@ void setup() {
     lv_label_set_text(ui_FCConditions, "Pending");
     lv_label_set_text(ui_FCWindSpeed, "Pending");
     lv_label_set_text(ui_FCUpdateTime, "Pending");
+    lv_label_set_text(ui_UVUpdateTime, "Pending");
     lv_label_set_text(ui_TempLabelFC, "--");
     lv_label_set_text(ui_UVLabel, "--");
 
@@ -187,7 +188,7 @@ void setup() {
     lv_label_set_text(ui_StatusMessage, "Connecting to server");
     lv_timer_handler();  // Run GUI
     //mqtt_connect();
-    lv_label_set_text(ui_StatusMessage, "Succesfully connected to server");
+    lv_label_set_text(ui_StatusMessage, "Successfully connected to server");
     lv_timer_handler();  // Run GUI
 
 
@@ -272,6 +273,8 @@ void loop() {
 
   // Update UV
   if (weather.UVupdateTime > 0) {
+    snprintf(tempString, CHAR_LEN, "Updated %s", weather.UV_time_string);
+    lv_label_set_text(ui_UVUpdateTime, tempString);
     snprintf(tempString, CHAR_LEN, "%2.1f", weather.UV);
     lv_label_set_text(ui_UVLabel, tempString);
     lv_arc_set_value(ui_UVArc, weather.UV * 10);

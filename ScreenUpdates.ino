@@ -185,6 +185,7 @@ void set_basic_text_color(lv_color_t color) {
   lv_obj_set_style_text_color(ui_FCConditions, color, LV_PART_MAIN);
   lv_obj_set_style_text_color(ui_FCWindSpeed, color, LV_PART_MAIN);
   lv_obj_set_style_text_color(ui_FCUpdateTime, color, LV_PART_MAIN);
+  lv_obj_set_style_text_color(ui_UVUpdateTime, color, LV_PART_MAIN);
   lv_obj_set_style_text_color(ui_ChargingLabel, color, LV_PART_MAIN);
   lv_obj_set_style_text_color(ui_AsofTimeLabel, color, LV_PART_MAIN);
   lv_obj_set_style_text_color(ui_ChargingTime, color, LV_PART_MAIN);
