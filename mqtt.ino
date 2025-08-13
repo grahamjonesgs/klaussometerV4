@@ -51,9 +51,6 @@ void receive_mqtt_messages_t(void *pvParams) {
           }
         }
       }
-      storage.begin("KO");
-      //storage.putBytes("readings", (byte *)(readings), sizeof(readings));
-      storage.end();
     }
   }
 }
@@ -168,9 +165,7 @@ void update_battery(char *recMessage, int index) {
     averageHistory = readings[index].currentValue;
   } else {
     for (int i = 0; i < readings[index].readingIndex; i++) {
-      Serial.printf("Calc average i is %i, readings[index].readingIndex is %i , total is before %f, ", i , readings[index].readingIndex, totalHistory );
       totalHistory = totalHistory + readings[index].lastValue[i];
-      Serial.printf("new total is %f\n",totalHistory);
     }
     averageHistory = totalHistory / readings[index].readingIndex;
 

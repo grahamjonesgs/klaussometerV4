@@ -70,14 +70,14 @@ WiFiClient espClient;
 MqttClient mqttClient(espClient);
 WiFiUDP ntpUDP;
 HTTPClient httpClientWeather;
-HTTPClient httpClientWeather2;
+HTTPClient httpClientUV;
 HTTPClient httpClientSolar;
 
 // Global variables
 time_t statusChangeTime = 0;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", TIME_OFFSET, 60000);
 void touch_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data);
-Weather weather = { 0.0, 0.0, 0.0, 0.0, 0.0, false, 0, "", "", "--:--:--" };  // needs to be updated
+Weather weather = { 0.0, 0.0, 0.0, 0.0, 0.0, false, 0, 0, "", "", "--:--:--", "--:--:--" };
 Solar solar = { 0, 0.0, 0.0, 0.0, 0.0, 0.0, "--:--:--", 100, 0, false, 0.0, 0.0 };
 Readings readings[]{ READINGS_ARRAY };
 Preferences storage;
@@ -201,6 +201,7 @@ void setup() {
     // Start tasks
     xTaskCreatePinnedToCore(receive_mqtt_messages_t, "mqtt", 16384, NULL, 4, NULL, 0);
     xTaskCreatePinnedToCore(get_weather_t, "Get Weather", 8192, NULL, 3, NULL, 0);
+    xTaskCreatePinnedToCore(get_uv_t, "Get UV", 8192, NULL, 3, NULL, 0);
     xTaskCreatePinnedToCore(get_solar_t, "Get Solar", 8192, NULL, 3, NULL, 0);
   }
 }
@@ -268,6 +269,17 @@ void loop() {
     }
   }
 
+
+  // Update UV
+  if (weather.UVupdateTime > 0) {
+    snprintf(tempString, CHAR_LEN, "%2.1f", weather.UV);
+    lv_label_set_text(ui_UVLabel, tempString);
+    lv_arc_set_value(ui_UVArc, weather.UV * 10);
+
+    lv_obj_set_style_arc_color(ui_UVArc, lv_color_hex(uv_color(weather.UV)), LV_PART_INDICATOR | LV_STATE_DEFAULT);  // Set arc to color
+    lv_obj_set_style_bg_color(ui_UVArc, lv_color_hex(uv_color(weather.UV)), LV_PART_KNOB | LV_STATE_DEFAULT);        // Set arc to color
+  }
+
   // Update weather values
   if (weather.updateTime > 0) {
     lv_label_set_text(ui_FCConditions, weather.description);
@@ -276,17 +288,10 @@ void loop() {
     snprintf(tempString, CHAR_LEN, "Wind %2.0f km/h %s", weather.windSpeed, weather.windDir);
     lv_label_set_text(ui_FCWindSpeed, tempString);
 
+    lv_arc_set_value(ui_TempArcFC, weather.temperature);
+
     snprintf(tempString, CHAR_LEN, "%2.1f", weather.temperature);
     lv_label_set_text(ui_TempLabelFC, tempString);
-
-    snprintf(tempString, CHAR_LEN, "%2.1f", weather.UV);
-    lv_label_set_text(ui_UVLabel, tempString);
-
-    lv_arc_set_value(ui_TempArcFC, weather.temperature);
-    lv_arc_set_value(ui_UVArc, weather.UV * 10);
-
-    lv_obj_set_style_arc_color(ui_UVArc, lv_color_hex(uv_color(weather.UV)), LV_PART_INDICATOR | LV_STATE_DEFAULT);  // Set arc to color
-    lv_obj_set_style_bg_color(ui_UVArc, lv_color_hex(uv_color(weather.UV)), LV_PART_KNOB | LV_STATE_DEFAULT);        // Set arc to color
 
     // Set min max if outside the expected values
     if (weather.temperature < weather.minTemp) {
@@ -303,7 +308,7 @@ void loop() {
     snprintf(tempString, CHAR_LEN, "Max\n%2.0fC", weather.maxTemp);
     lv_label_set_text(ui_FCMax, tempString);
     lv_arc_set_range(ui_TempArcFC, weather.minTemp, weather.maxTemp);
-  } 
+  }
 
   // Update solar values
   set_solar_values();

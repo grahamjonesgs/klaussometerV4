@@ -16,140 +16,59 @@ extern Weather weather;
 extern Solar solar;
 
 // Get weather from weatherbit.io
-/*void get_weather_t_old(void *pvParameters) {
+void get_uv_t(void *pvParameters) {
 
   const char apiKey[] = WEATHERBIT_API;
-  String requestUrl;
-  time_t t;
-
+Serial.printf("StartingUV\n");
   while (true) {
-    String callstring;
-    if (now() - weather.updateTime > WEATHER_UPDATE_INTERVAL) {
-      httpClientWeather.begin("http://api.weatherbit.io/v2.0/current?city_id=3369157&key=" + String(apiKey));
-      int httpCode = httpClientWeather.GET();
+    if (now() - weather.UVupdateTime > UV_UPDATE_INTERVAL) {
+      Serial.printf("setting URL");
+      httpClientUV.begin("http://api.weatherbit.io/v2.0/current?city_id=3369157&key=" + String(apiKey));
+      int httpCode = httpClientUV.GET();
+      Serial.printf("get done\n");
       if (httpCode > 0) {
         if (httpCode == HTTP_CODE_OK) {
-          String payload = httpClientWeather.getString();
+          Serial.printf("was OK\n");
+          String payload = httpClientUV.getString();
 
           JsonDocument root;
           deserializeJson(root, payload);
-          float weatherTemperature = root["data"][0]["temp"];
-          float weatherWindSpeed = root["data"][0]["wind_spd"];
           float UV = root["data"][0]["uv"];
-
-          const char *weatherWindDir = root["data"][0]["wind_cdir"];
-          int weatherPressure = root["data"][0]["pres"];
-          const char *weatherDescription = root["data"][0]["weather"]["description"];
-          const char *weatherIcon = root["data"][0]["weather"]["icon"];
-
-          weather.temperature = weatherTemperature;
-          weather.pressure = weatherPressure;
-          weather.windSpeed = weatherWindSpeed * 3.6;
           weather.UV = UV;
-          if (weatherDescription != 0) {
-            strncpy(weather.description, weatherDescription, CHAR_LEN);
-          }
-          if (weatherIcon != 0) {
-            strncpy(weather.icon, weatherIcon, CHAR_LEN);
-          }
-          if (weatherWindDir != 0) {
-            strncpy(weather.windDir, weatherWindDir, CHAR_LEN);
-          }
-          weather.updateTime = now();
-          timeClient.getFormattedTime().toCharArray(weather.weather_time_string, CHAR_LEN);
-          strncpy(statusMessage, "Weather updated", CHAR_LEN);
+          Serial.printf("UV is %f\n",UV);
+          weather.UVupdateTime = now();
+          strncpy(statusMessage, "UV updated", CHAR_LEN);
+          timeClient.getFormattedTime().toCharArray(weather.UVweather_time_string, CHAR_LEN);
           statusMessageUpdated = true;
-          storage.begin("KO");
-          storage.remove("weather");
-          storage.putBytes("weather", (byte *)(&weather), sizeof(weather));
-          storage.end();
         }
       } else {
-        Serial.printf("[HTTP] GET current weather failed, error: %s\n", httpClientWeather.errorToString(httpCode).c_str());
-        strncpy(statusMessage, "Weather updated failed", CHAR_LEN);
+        Serial.printf("[HTTP] GET UV failed, error: %s\n", httpClientUV.errorToString(httpCode).c_str());
+        strncpy(statusMessage, "UV updated failed", CHAR_LEN);
         statusMessageUpdated = true;
       }
     }
-
-    if (now() - weather.dailyUpdateTime > FORECAST_DAYS_UPDATE_INTERVAL) {
-      httpClientWeather.begin("http://api.weatherbit.io/v2.0/forecast/daily?city_id=3369157&days=" + String(FORECAST_DAYS) + "&key=" + String(apiKey));
-      int httpCode = httpClientWeather.GET();
-      if (httpCode > 0) {
-        if (httpCode == HTTP_CODE_OK) {
-          String payload = httpClientWeather.getString();
-          JsonDocument root;
-          deserializeJson(root, payload);
-          for (int i = 0; i < FORECAST_DAYS; i++) {
-            time_t forecastTime = root["data"][i]["ts"];
-            float forecastMaxTemp = root["data"][i]["max_temp"];
-            float forecastMinTemp = root["data"][i]["min_temp"];
-            float forecastMoon = root["data"][i]["moon_phase"];
-            const char *forecastDescription = root["data"][i]["weather"]["description"];
-            const char *forecastIcon = root["data"][i]["weather"]["icon"];
-            time_t sunrise = root["data"][i]["sunrise_ts"];
-            time_t sunset = root["data"][i]["sunset_ts"];
-            forecastDays[i].dateTime = forecastTime;
-            forecastDays[i].maxTemp = forecastMaxTemp;
-            forecastDays[i].minTemp = forecastMinTemp;
-            forecastDays[i].moonPhase = forecastMoon;
-            forecastDays[i].sunrise = sunrise + TIME_OFFSET;
-            forecastDays[i].sunset = sunset + TIME_OFFSET;
-            if (forecastDescription != 0) {
-              strncpy(forecastDays[i].description, forecastDescription, CHAR_LEN);
-            }
-            if (forecastIcon != 0) {
-              strncpy(forecastDays[i].icon, forecastIcon, CHAR_LEN);
-            }
-          }
-          weather.dailyUpdateTime = now();
-          strncpy(statusMessage, "Forecast days updated", CHAR_LEN);
-          statusMessageUpdated = true;
-          storage.begin("KO");
-          storage.remove("forecastDays");
-          storage.remove("weather");
-          storage.putBytes("forecastDays", (byte *)(forecastDays), sizeof(forecastDays));
-          storage.putBytes("weather", (byte *)(&weather), sizeof(weather));
-          storage.end();
-        }
-      } else {
-        Serial.printf("[HTTP] GET daily weather failed, error: %s\n", httpClientWeather.errorToString(httpCode).c_str());
-      }
-      if (httpClientWeather.connected()) {
-        httpClientWeather.end();
-      }
-    }
-    delay(300000);
+    vTaskDelay(30000);
   }
-} */
-
-/* float temperature;
-  float windSpeed;
-  float UV;
-  float maxTemp;
-  float minTemp;
-  bool isDay;
-  time_t updateTime;
-  char windDir[CHAR_LEN];
-  char description[CHAR_LEN];
-  char weather_time_string[CHAR_LEN];*/
-
+}
 
 void get_weather_t(void *pvParameters) {
 
   String requestUrl;
   time_t t;
-
+Serial.printf("Starting weather\n");
   while (true) {
     String callstring;
     if (now() - weather.updateTime > WEATHER_UPDATE_INTERVAL) {
       httpClientWeather.begin("https://api.open-meteo.com/v1/forecast?latitude=-33.9258&longitude=18.4232&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max&models=ukmo_uk_deterministic_2km,cma_grapes_global&current=temperature_2m,is_day,weather_code,wind_speed_10m,wind_direction_10m&timezone=auto&forecast_days=1");
+      vTaskDelay(100);
       int httpCode = httpClientWeather.GET();
+      vTaskDelay(100);
       if (httpCode > 0) {
         if (httpCode == HTTP_CODE_OK) {
           String payload = httpClientWeather.getString();
           JsonDocument root;
           deserializeJson(root, payload);
-          
+
           float weatherTemperature = root["current"]["temperature_2m"];
           float weatherWindDir = root["current"]["wind_direction_10m"];
           float weatherWindSpeed = root["current"]["wind_speed_10m"];
@@ -160,7 +79,6 @@ void get_weather_t(void *pvParameters) {
 
           weather.temperature = weatherTemperature;
           weather.windSpeed = weatherWindSpeed;
-          weather.UV = 0;
           weather.maxTemp = weatherMaxTemp;
           weather.minTemp = weatherMinTemp;
           weather.isDay = weatherIsDay;
@@ -179,7 +97,7 @@ void get_weather_t(void *pvParameters) {
       }
     }
 
-    delay(1000);
+    delay(10000);
   }
 }
 
@@ -303,14 +221,11 @@ void get_solar_t(void *pvParameters) {
     httpClientSolar.addHeader("Content-Type", "application/json");
 
     int httpCode = httpClientSolar.POST("{\n\"appSecret\" : \"" + solar_secret + "\", \n\"email\" : \"" + solar_username + "\",\n\"password\" : \"" + solar_passhash + "\"\n}");
-
     if (httpCode > 0) {
       if (httpCode == HTTP_CODE_OK) {
         String payload = httpClientSolar.getString();
         JsonDocument root;
         deserializeJson(root, payload);
-        //const char *rec_token = root["access_token"];
-        //const char *success_msg = root["success"];
         if (root.containsKey("access_token")) {
           const char *rec_token = root["access_token"];
           strncpy(statusMessage, "Solar token obtained", CHAR_LEN);
@@ -326,7 +241,7 @@ void get_solar_t(void *pvParameters) {
       strncpy(statusMessage, "Getting solar token failed", CHAR_LEN);
       statusMessageUpdated = true;
     }
-    delay(10000);
+    vTaskDelay(5000);
   }
 
   // Get station status
@@ -408,7 +323,7 @@ void get_solar_t(void *pvParameters) {
           statusMessageUpdated = true;
         }
       }
-      delay(1000);
+      vTaskDelay(1000);
       /*
         timeType 1 with start and end date of today gives array of size "total", then in stationDataItems -> batterySoc to get battery min/max for today
         timeType 2 with start and end date of today gives today's buy ammount as stationDataItems -> buyValue
@@ -429,6 +344,7 @@ void get_solar_t(void *pvParameters) {
       httpClientSolar.addHeader("Authorization", token);
 
       httpCode = httpClientSolar.POST("{\n\"stationId\" : \"" + solar_statioid + "\",\n\"timeType\" : 2,\n\"startTime\" : \"" + currentDate + "\",\n\"endTime\" : \"" + currentDate + "\"\n}");
+      vTaskDelay(100);
       if (httpCode > 0) {
         if (httpCode == HTTP_CODE_OK) {
           String payload = httpClientSolar.getString();
@@ -452,7 +368,7 @@ void get_solar_t(void *pvParameters) {
         }
       }
 
-      delay(1000);
+      vTaskDelay(100);
       // Get month buy value timeType 3
       httpClientSolar.begin("https://" + solar_url + "//station/v1.0/history?language=en");
       httpClientSolar.addHeader("Content-Type", "application/json");
@@ -480,6 +396,6 @@ void get_solar_t(void *pvParameters) {
         }
       }
     }
-    delay(1000);
+    vTaskDelay(5000);
   }
 }

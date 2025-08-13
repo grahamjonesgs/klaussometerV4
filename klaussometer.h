@@ -36,9 +36,11 @@ struct Weather {
   float minTemp;
   bool isDay;
   time_t updateTime;
+  time_t UVupdateTime;
   char windDir[CHAR_LEN];
   char description[CHAR_LEN];
   char weather_time_string[CHAR_LEN];
+  char UVweather_time_string[CHAR_LEN];
 };
 
 struct Solar {
@@ -83,7 +85,8 @@ struct Solar {
 // Define constants used
 #define MAX_NO_MESSAGE_SEC 3600LL            // Time before CHAR_NO_MESSAGE is set in seconds (long)
 #define TIME_RETRIES 100                     // Number of time to retry getting the time during setup
-#define WEATHER_UPDATE_INTERVAL 30         // Interval between weather updates
+#define WEATHER_UPDATE_INTERVAL 300          // Interval between weather updates
+#define UV_UPDATE_INTERVAL 3600              // Interval between UV updates
 #define SOLAR_UPDATE_INTERVAL 30             // Interval between solar updates
 #define STATUS_MESSAGE_TIME 5                // Seconds an status message can be displayed
 #define MAX_SOLAR_TIME_STATUS 24             // Max time in hours for chnage / discharge that a message will be displayed for
