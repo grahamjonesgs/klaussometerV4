@@ -189,15 +189,12 @@ void setup() {
 
     lv_label_set_text(ui_StatusMessage, "Starting Wifi");
     lv_timer_handler();  // Run GUI
-    //setup_wifi();        // Connect to Wifi network
     lv_timer_handler();  // Run GUI
 
     lv_label_set_text(ui_StatusMessage, "Connecting to server");
     lv_timer_handler();  // Run GUI
-    //mqtt_connect();
     lv_label_set_text(ui_StatusMessage, "Successfully connected to server");
     lv_timer_handler();  // Run GUI
-
 
     setup_wifi();
     time_init();
@@ -209,7 +206,7 @@ void setup() {
     // Start tasks
     xTaskCreatePinnedToCore(receive_mqtt_messages_t, "mqtt", 16384, NULL, 4, NULL, 0);
     xTaskCreatePinnedToCore(get_weather_t, "Get Weather", 8192, NULL, 3, NULL, 0);
-    //xTaskCreatePinnedToCore(get_uv_t, "Get UV", 8192, NULL, 3, NULL, 0);
+    xTaskCreatePinnedToCore(get_uv_t, "Get UV", 8192, NULL, 3, NULL, 0);
     xTaskCreatePinnedToCore(get_solar_t, "Get Solar", 8192, NULL, 3, NULL, 1);
   }
 }
