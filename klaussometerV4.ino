@@ -132,6 +132,13 @@ void setup() {
     lv_arc_set_value(ui_TempArc3, readings[2].currentValue);
     lv_arc_set_value(ui_TempArc4, readings[3].currentValue);
     lv_arc_set_value(ui_TempArc5, readings[4].currentValue);
+
+    lv_obj_add_flag(ui_TempArc1, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_TempArc2, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_TempArc3, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_TempArc4, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui_TempArc5, LV_OBJ_FLAG_HIDDEN);
+
     lv_label_set_text(ui_TempLabel1, readings[0].output);
     lv_label_set_text(ui_TempLabel2, readings[1].output);
     lv_label_set_text(ui_TempLabel3, readings[2].output);
@@ -202,8 +209,8 @@ void setup() {
     // Start tasks
     xTaskCreatePinnedToCore(receive_mqtt_messages_t, "mqtt", 16384, NULL, 4, NULL, 0);
     xTaskCreatePinnedToCore(get_weather_t, "Get Weather", 8192, NULL, 3, NULL, 0);
-    xTaskCreatePinnedToCore(get_uv_t, "Get UV", 8192, NULL, 3, NULL, 0);
-    xTaskCreatePinnedToCore(get_solar_t, "Get Solar", 8192, NULL, 3, NULL, 0);
+    //xTaskCreatePinnedToCore(get_uv_t, "Get UV", 8192, NULL, 3, NULL, 0);
+    xTaskCreatePinnedToCore(get_solar_t, "Get Solar", 8192, NULL, 3, NULL, 1);
   }
 }
 
@@ -216,12 +223,18 @@ void loop() {
 
   // Update values
   lv_arc_set_value(ui_TempArc1, readings[0].currentValue);
+  if (readings[0].changeChar != CHAR_NO_MESSAGE) { lv_obj_clear_flag(ui_TempArc1, LV_OBJ_FLAG_HIDDEN); }
   lv_arc_set_value(ui_TempArc2, readings[1].currentValue);
+  if (readings[1].changeChar != CHAR_NO_MESSAGE) { lv_obj_clear_flag(ui_TempArc2, LV_OBJ_FLAG_HIDDEN); }
   lv_arc_set_value(ui_TempArc3, readings[2].currentValue);
+  if (readings[2].changeChar != CHAR_NO_MESSAGE) { lv_obj_clear_flag(ui_TempArc3, LV_OBJ_FLAG_HIDDEN); }
   lv_arc_set_value(ui_TempArc4, readings[3].currentValue);
+  if (readings[3].changeChar != CHAR_NO_MESSAGE) { lv_obj_clear_flag(ui_TempArc4, LV_OBJ_FLAG_HIDDEN); }
   lv_arc_set_value(ui_TempArc5, readings[4].currentValue);
+  if (readings[4].changeChar != CHAR_NO_MESSAGE) { lv_obj_clear_flag(ui_TempArc5, LV_OBJ_FLAG_HIDDEN); }
 
   lv_label_set_text(ui_TempLabel1, readings[0].output);
+
   lv_label_set_text(ui_TempLabel2, readings[1].output);
   lv_label_set_text(ui_TempLabel3, readings[2].output);
   lv_label_set_text(ui_TempLabel4, readings[3].output);

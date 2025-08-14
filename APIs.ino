@@ -21,7 +21,7 @@ void get_uv_t(void *pvParameters) {
   const char apiKey[] = WEATHERBIT_API;
   while (true) {
     if (weather.isDay) {
-      if ((now() - weather.UVupdateTime > UV_UPDATE_INTERVAL)) {
+      if (now() - weather.UVupdateTime > UV_UPDATE_INTERVAL) {
         httpClientUV.begin("http://api.weatherbit.io/v2.0/current?city_id=3369157&key=" + String(apiKey));
         int httpCode = httpClientUV.GET();
         if (httpCode > 0) {
@@ -45,19 +45,21 @@ void get_uv_t(void *pvParameters) {
       }
     } else {
       weather.UV = 0.0;
-      weather.UVupdateTime = now();
+      if (weather.updateTime > 0) {  //Only update if the weather is valid so the day / night is valid
+        weather.UVupdateTime = now();
+      }
       timeClient.getFormattedTime().toCharArray(weather.UV_time_string, CHAR_LEN);
     }
     vTaskDelay(30000);
   }
 }
 
+
 void get_weather_t(void *pvParameters) {
 
   String requestUrl;
   time_t t;
   while (true) {
-    String callstring;
     if (now() - weather.updateTime > WEATHER_UPDATE_INTERVAL) {
       httpClientWeather.begin("https://api.open-meteo.com/v1/forecast?latitude=-33.9258&longitude=18.4232&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max&models=ukmo_uk_deterministic_2km,cma_grapes_global&current=temperature_2m,is_day,weather_code,wind_speed_10m,wind_direction_10m&timezone=auto&forecast_days=1");
       vTaskDelay(100);
@@ -214,36 +216,6 @@ void get_solar_t(void *pvParameters) {
   char currentYearMonth[CHAR_LEN];
   char previousMonthYearMonth[CHAR_LEN];
 
-
-  // Get token code
-  while (token.length() == 0) {
-    httpClientSolar.begin("https://" + solar_url + "/account/v1.0/token?" + "appId=" + solar_appid);
-    httpClientSolar.addHeader("Content-Type", "application/json");
-
-    int httpCode = httpClientSolar.POST("{\n\"appSecret\" : \"" + solar_secret + "\", \n\"email\" : \"" + solar_username + "\",\n\"password\" : \"" + solar_passhash + "\"\n}");
-    if (httpCode > 0) {
-      if (httpCode == HTTP_CODE_OK) {
-        String payload = httpClientSolar.getString();
-        JsonDocument root;
-        deserializeJson(root, payload);
-        if (root.containsKey("access_token")) {
-          const char *rec_token = root["access_token"];
-          strncpy(statusMessage, "Solar token obtained", CHAR_LEN);
-          statusMessageUpdated = true;
-          token = rec_token;
-          token = "bearer " + token;
-        } else {
-          strncpy(statusMessage, "Solar token error", CHAR_LEN);
-        }
-      }
-    } else {
-      Serial.printf("[HTTP] GET solar token failed, error: %s\n", httpClientSolar.errorToString(httpCode).c_str());
-      strncpy(statusMessage, "Getting solar token failed", CHAR_LEN);
-      statusMessageUpdated = true;
-    }
-    vTaskDelay(5000);
-  }
-
   // Get station status
   while (true) {
     if (now() - solar.updateTime > SOLAR_UPDATE_INTERVAL) {
@@ -255,6 +227,7 @@ void get_solar_t(void *pvParameters) {
         if (httpCode == HTTP_CODE_OK) {
           String payload = httpClientSolar.getString();
           JsonDocument root;
+          vTaskDelay(10);
           deserializeJson(root, payload);
           bool rec_success = root["success"];
           if (rec_success == true) {
@@ -307,6 +280,7 @@ void get_solar_t(void *pvParameters) {
             // Set maximum
             if (solar.batteryCharge > solar.today_battery_max) {
               solar.today_battery_max = solar.batteryCharge;
+              vTaskDelay(10);
               storage.begin("KO");
               storage.remove("solarmax");
               storage.putFloat("solarmax", solar.today_battery_max);
@@ -315,6 +289,42 @@ void get_solar_t(void *pvParameters) {
 
             strncpy(statusMessage, "Solar status updated", CHAR_LEN);
             statusMessageUpdated = true;
+          } else {
+            if (root.containsKey("msg")) {
+              const char *msg = root["msg"];
+              if (*msg != 0) {
+                if (strcmp(msg, "auth invalid token")) {
+                  token = "";
+                  while (token.length() == 0) {
+                    httpClientSolar.begin("https://" + solar_url + "/account/v1.0/token?" + "appId=" + solar_appid);
+                    httpClientSolar.addHeader("Content-Type", "application/json");
+
+                    int httpCode = httpClientSolar.POST("{\n\"appSecret\" : \"" + solar_secret + "\", \n\"email\" : \"" + solar_username + "\",\n\"password\" : \"" + solar_passhash + "\"\n}");
+                    if (httpCode > 0) {
+                      if (httpCode == HTTP_CODE_OK) {
+                        String payload = httpClientSolar.getString();
+                        JsonDocument root;
+                        deserializeJson(root, payload);
+                        if (root.containsKey("access_token")) {
+                          const char *rec_token = root["access_token"];
+                          strncpy(statusMessage, "Solar token obtained", CHAR_LEN);
+                          statusMessageUpdated = true;
+                          token = rec_token;
+                          token = "bearer " + token;
+                        } else {
+                          strncpy(statusMessage, "Solar token error", CHAR_LEN);
+                        }
+                      }
+                    } else {
+                      Serial.printf("[HTTP] GET solar token failed, error: %s\n", httpClientSolar.errorToString(httpCode).c_str());
+                      strncpy(statusMessage, "Getting solar token failed", CHAR_LEN);
+                      statusMessageUpdated = true;
+                    }
+                    vTaskDelay(500);
+                  }
+                }
+              }
+            }
           }
         } else {
           Serial.printf("[HTTP] GET solar status failed, error: %s\n", httpClientSolar.errorToString(httpCode).c_str());
@@ -323,7 +333,7 @@ void get_solar_t(void *pvParameters) {
           statusMessageUpdated = true;
         }
       }
-      vTaskDelay(1000);
+      vTaskDelay(100);
       /*
         timeType 1 with start and end date of today gives array of size "total", then in stationDataItems -> batterySoc to get battery min/max for today
         timeType 2 with start and end date of today gives today's buy amount as stationDataItems -> buyValue

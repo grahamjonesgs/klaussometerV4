@@ -104,14 +104,19 @@ void set_solar_values() {
 
     // Set grid bought ammounts
     if (solar.today_buy != 0.0 || solar.month_buy != 0.0) {
-      snprintf(tempString, CHAR_LEN, "Bought\nToday %.1fkWh - R%.0f\nThis month %.1fkWh - R%.0f",
-               solar.today_buy, solar.today_buy * ELECTRICY_PRICE, solar.month_buy, solar.month_buy * ELECTRICY_PRICE);
+
+      char *boughtToday=format_integer_with_commas((int)floor(solar.today_buy * ELECTRICY_PRICE));
+      char *boughtMonth=format_integer_with_commas((int)floor(solar.month_buy * ELECTRICY_PRICE));
+
+      snprintf(tempString, CHAR_LEN, "Bought\nToday %.1fkWh - R%s\nThis month %.1fkWh - R%s",
+               solar.today_buy, boughtToday,solar.month_buy, boughtMonth);
+      free(boughtToday);
+      free(boughtMonth);
+
       lv_label_set_text(ui_GridBought, tempString);
     }
   }
 }
-
-
 
 // Sets UV color based on value
 int uv_color(float UV) {
@@ -199,4 +204,58 @@ void set_basic_text_color(lv_color_t color) {
   lv_obj_set_style_text_color(ui_Direction3, color, LV_PART_MAIN);
   lv_obj_set_style_text_color(ui_Direction4, color, LV_PART_MAIN);
   lv_obj_set_style_text_color(ui_Direction5, color, LV_PART_MAIN);
+}
+
+
+char *format_integer_with_commas(long long num) {
+    // Handle the special case of 0.
+    if (num == 0) {
+        char *str = (char *)malloc(2); // 1 digit + null terminator
+        if (!str) return NULL;
+        strcpy(str, "0");
+        return str;
+    }
+
+    int is_negative = 0;
+    if (num < 0) {
+        is_negative = 1;
+        num = -num;
+    }
+
+    char buffer[25]; // A buffer to hold the number string without commas. long long is at most 19 digits.
+    sprintf(buffer, "%lld", num);
+    int len = strlen(buffer);
+    
+    // Calculate the length of the final string with commas.
+    // The number of commas is (len - 1) / 3.
+    int num_commas = (len - 1) / 3;
+    int total_len = len + num_commas + is_negative;
+
+    // Dynamically allocate memory for the formatted string.
+    char *result_str = (char *)malloc(total_len + 1); // +1 for the null terminator.
+    if (!result_str) {
+        return NULL; // Memory allocation failed.
+    }
+    result_str[total_len] = '\0'; // Null-terminate the string.
+
+    int j = total_len - 1; // Index for the result string (working backwards).
+    int digit_count = 0;
+
+    // Iterate through the buffer backwards, adding digits and commas.
+    for (int i = len - 1; i >= 0; i--) {
+        result_str[j--] = buffer[i];
+        digit_count++;
+        
+        // Add a comma if it's the end of a group of three digits and we're not at the start.
+        if (digit_count % 3 == 0 && i != 0) {
+            result_str[j--] = ',';
+        }
+    }
+
+    // Add the negative sign at the beginning if needed.
+    if (is_negative) {
+        result_str[j--] = '-';
+    }
+
+    return result_str;
 }
